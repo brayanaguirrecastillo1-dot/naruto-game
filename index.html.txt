@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naruto: El Legado del Susurro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #game-container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 0 25px rgba(255, 102, 0, 0.5);
+        }
+
+        #story-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #character-image {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 3px solid #ff6600;
+            margin-bottom: 20px;
+            object-fit: cover;
+        }
+
+        #story-text {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        #choices {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6600, #ff8533);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(255, 102, 0, 0.4);
+        }
+
+        #stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 102, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff6600;
+        }
+
+        #combat-section {
+            display: none;
+            text-align: center;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff3300, #ff6600);
+            transition: width 0.3s ease;
+        }
+
+        #audio-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="audio-controls" onclick="toggleMusic()">
+        <span id="music-icon">🔊</span>
+    </div>
+
+    <div id="game-container">
+        <div id="story-section">
+            <img id="character-image" src="https://i.imgur.com/8n2QX7F.png" alt="Personaje">
+            <div id="story-text">Bienvenido al mundo ninja...</div>
+            <div id="choices"></div>
+        </div>
+
+        <div id="combat-section">
+            <h2>⚔️ Combate Ninja</h2>
+            <div>
+                <h3>Tú</h3>
+                <div class="health-bar">
+                    <div id="player-health" class="health-fill" style="width: 100%"></div>
+                </div>
+                <p>Chakra: <span id="player-chakra">100</span></p>
+            </div>
+            <div>
+                <h3>Enemigo</h3>
+                <div class="health-bar">
+                    <div id="enemy-health" class="health-fill" style="width: 100%"></div>
+                </div>
+            </div>
+            <div id="combat-choices" style="margin-top: 20px;"></div>
+        </div>
+
+        <div id="stats">
+            <div class="stat">
+                <div>💪 Fuerza</div>
+                <div class="stat-value" id="fuerza">3</div>
+            </div>
+            <div class="stat">
+                <div>🧠 Inteligencia</div>
+                <div class="stat-value" id="inteligencia">3</div>
+            </div>
+            <div class="stat">
+                <div>🕊️ Voluntad</div>
+                <div class="stat-value" id="voluntad">3</div>
+            </div>
+            <div class="stat">
+                <div>⚡ Chakra</div>
+                <div class="stat-value" id="chakra">100</div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="bgm" loop>
+        <source src="https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" type="audio/wav">
+    </audio>
+
+    <script>
+        // 🎮 Estado del juego
+        let gameState = {
+            stats: {
+                fuerza: 3,
+                inteligencia: 3,
+                voluntad: 3,
+                chakra: 100
+            },
+            currentChapter: 'start',
+            inventory: [],
+            flags: {}
+        };
+
+        // 🎵 Control de música
+        let musicPlaying = false;
+        const bgm = document.getElementById('bgm');
+        
+        function toggleMusic() {
+            const icon = document.getElementById('music-icon');
+            if (musicPlaying) {
+                bgm.pause();
+                icon.textContent = '🔇';
+            } else {
+                bgm.play().catch(e => console.log('Autoplay bloqueado'));
+                icon.textContent = '🔊';
+            }
+            musicPlaying = !musicPlaying;
+        }
+
+        // 📖 Sistema de historia
+        const story = {
+            start: {
+                text: "Te encuentras en el Bosque de la Muerte. Una figura misteriosa aparece ante ti...",
+                image: "https://i.imgur.com/8n2QX7F.png",
+                choices: [
+                    { text: "Atacar primero", next: "combat_intro", effect: { fuerza: 1 } },
+                    { text: "Analizar la situación", next: "analyze", effect: { inteligencia: 1 } },
+                    { text: "Intentar dialogar", next: "talk", effect: { voluntad: 1 } }
+                ]
+            },
+            combat_intro: {
+                text: "¡Un ninja renegado te ataca! Prepárate para el combate.",
+                image: "https://i.imgur.com/JqXeZGN.jpg",
+                onLoad: () => startCombat("ninja_renegado")
+            },
+            analyze: {
+                text: "Observas detenidamente y descubres que es un ninja de la Aldea Oculta de la Niebla.",
+                image: "https://i.imgur.com/4VzPOO1.jpg",
+                choices: [
+                    { text: "Usar estrategia", next: "combat_tactical", effect: { inteligencia: 2 } },
+                    { text: "Llamar refuerzos", next: "call_help", effect: { voluntad: 1 } }
+                ]
+            },
+            talk: {
+                text: "El ninja parece sorprendido por tu actitud pacífica. ¿Qué haces?",
+                image: "https://i.imgur.com/8n2QX7F.png",
+                choices: [
+                    { text: "Ofrecer alianza", next: "alliance", effect: { voluntad: 2 } },
+                    { text: "Intimidar", next: "intimidate", effect: { fuerza: 1 } }
+                ]
+            },
+            victory: {
+                text: "¡Has vencido! Obtienes un pergamino antiguo.",
+                image: "https://i.imgur.com/JqXeZGN.jpg",
+                choices: [
+                    { text: "Continuar aventura", next: "next_chapter", effect: {} }
+                ]
+            }
+        };
+
+        // ⚔️ Sistema de combate
+        let combatState = {
+            active: false,
+            enemy: null,
+            playerHp: 100,
+            enemyHp: 100
+        };
+
+        function startCombat(enemyType) {
+            combatState.active = true;
+            combatState.enemy = enemyType;
+            combatState.playerHp = 100 + gameState.stats.fuerza * 10;
+            combatState.enemyHp = 80;
+
+            document.getElementById('story-section').style.display = 'none';
+            document.getElementById('combat-section').style.display = 'block';
+            
+            updateCombatUI();
+            
+            document.getElementById('combat-choices').innerHTML = `
+                <button onclick="combatAction('attack')">Ataque Físico</button>
+                <button onclick="combatAction('jutsu')">Jutsu (25 chakra)</button>
+                <button onclick="combatAction('defend')">Defender</button>
+            `;
+        }
+
+        function combatAction(action) {
+            if (!combatState.active) return;
+
+            let damage = 0;
+            
+            switch(action) {
+                case 'attack':
+                    damage = 15 + gameState.stats.fuerza * 3;
+                    break;
+                case 'jutsu':
+                    if (gameState.stats.chakra >= 25) {
+                        damage = 25 + gameState.stats.inteligencia * 4;
+                        gameState.stats.chakra -= 25;
+                    } else {
+                        alert("¡No tienes suficiente chakra!");
+                        return;
+                    }
+                    break;
+                case 'defend':
+                    damage = 0;
+                    break;
+            }
+
+            combatState.enemyHp -= damage;
+            
+            // Enemigo ataca
+            const enemyDamage = Math.max(5, 15 - gameState.stats.voluntad);
+            if (action !== 'defend') {
+                combatState.playerHp -= enemyDamage;
+            }
+
+            updateCombatUI();
+
+            if (combatState.enemyHp <= 0) {
+                endCombat(true);
+            } else if (combatState.playerHp <= 0) {
+                endCombat(false);
+            }
+        }
+
+        function updateCombatUI() {
+            document.getElementById('player-health').style.width = 
+                Math.max(0, combatState.playerHp) + '%';
+            document.getElementById('enemy-health').style.width = 
+                Math.max(0, combatState.enemyHp) + '%';
+            document.getElementById('player-chakra').textContent = gameState.stats.chakra;
+        }
+
+        function endCombat(victory) {
+            combatState.active = false;
+            document.getElementById('story-section').style.display = 'block';
+            document.getElementById('combat-section').style.display = 'none';
+            
+            if (victory) {
+                gameState.stats.chakra = Math.min(100, gameState.stats.chakra + 30);
+                loadChapter('victory');
+            } else {
+                loadChapter('defeat');
+            }
+        }
+
+        // 📖 Cargar capítulo
+        function loadChapter(key) {
+            const chapter = story[key] || { text: "Fin del juego por ahora...", choices: [] };
+            
+            document.getElementById('story-text').textContent = chapter.text;
+            document.getElementById('character-image').src = chapter.image;
+            
+            const choicesDiv = document.getElementById('choices');
+            choicesDiv.innerHTML = '';
+            
+            chapter.choices?.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.textContent = choice.text;
+                btn.onclick = () => {
+                    Object.assign(gameState.stats, choice.effect);
+                    updateStats();
+                    loadChapter(choice.next);
+                };
+                choicesDiv.appendChild(btn);
+            });
+
+            if (chapter.onLoad) chapter.onLoad();
+        }
+
+        function updateStats() {
+            document.getElementById('fuerza').textContent = gameState.stats.fuerza;
+            document.getElementById('inteligencia').textContent = gameState.stats.inteligencia;
+            document.getElementById('voluntad').textContent = gameState.stats.voluntad;
+            document.getElementById('chakra').textContent = gameState.stats.chakra;
+        }
+
+        // 🚀 Iniciar juego
+        updateStats();
+        loadChapter('start');
+    </script>
+</body>
+</html>
